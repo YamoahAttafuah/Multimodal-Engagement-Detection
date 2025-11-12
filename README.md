@@ -55,11 +55,6 @@ python train_only_dfew_16f.py --fold 1 --epochs 200 --batch 128 --out ../models_
 python test_dfew_16f.py        --fold 1 --ckpt ../models_exp1/best_resnet50_fold1_16f_VAL.pth
 ```
 
-## Tips (quick wins)
-- Sample more frames per clip for training; add stronger augmentation.
-- Try class-balanced/focal loss and cosine LR for longer runs.
-- Use larger input (e.g., 256) if VRAM allows; face-crop can improve UAR.
-
 ## Metrics refresher
 - **WAR**: overall accuracy (higher is better).
 - **UAR**: macro recall (average per-class recall; higher is better). We **select by UAR**.
