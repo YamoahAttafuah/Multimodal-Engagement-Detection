@@ -7,3 +7,4 @@ pillow>=10.0
 torch~=2.3
 torchvision~=0.18
 scikit-learn>=1.2
+opencv-python

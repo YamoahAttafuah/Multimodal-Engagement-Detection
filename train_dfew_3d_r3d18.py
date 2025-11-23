@@ -4,7 +4,8 @@ import numpy as np
 from PIL import Image
 import torch, torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms, models
+from torchvision import transforms
+from torchvision.models.video import r3d_18, R3D_18_Weights
 from sklearn.model_selection import train_test_split
 from pathlib import Path
 
@@ -145,17 +146,20 @@ def stratified_split(items, val_frac=0.1, seed=42):
         rng.shuffle(tr); rng.shuffle(va)
         return tr, va
 
-# ---------------- Dataset ----------------
-class DFEWFrames(Dataset):
+# ---------------- 3D Dataset: returns clips (C, T, H, W) ----------------
+class DFEWClips3D(Dataset):
     """
-    Train: per_clip=1 (one random frame/clip/epoch)
-    Eval : per_clip=16 (cover all 16 frames)
+    Each item is a whole clip:
+      x: (C, T, H, W)  (e.g. 3x16x224x224)
+      y: label
+      cid: clip id
     """
-    def __init__(self, frames_root, split_items, tfm, per_clip=1):
-        self.tfm = tfm
-        self.per_clip = per_clip
+    def __init__(self, frames_root, split_items, tfm_per_frame, num_frames=16):
+        self.tfm = tfm_per_frame
+        self.num_frames = num_frames
         self.clips = []
         missing = []
+
         for cid, lab in split_items:
             d = os.path.join(frames_root, str(cid))
             if not os.path.isdir(d):
@@ -176,15 +180,27 @@ class DFEWFrames(Dataset):
             raise RuntimeError("No frames found. Check --root and the 16f folder.")
 
     def __len__(self):
-        return len(self.clips) * self.per_clip
+        return len(self.clips)
+
+    def _select_frames(self, ims):
+        """Select exactly self.num_frames paths from ims (uniform or pad last)."""
+        if len(ims) >= self.num_frames:
+            idxs = np.linspace(0, len(ims)-1, self.num_frames).astype(int)
+            return [ims[i] for i in idxs]
+        else:
+            # pad by repeating last frame
+            return ims + [ims[-1]] * (self.num_frames - len(ims))
 
     def __getitem__(self, i):
-        ci = i // self.per_clip
-        cid, lab, ims = self.clips[ci]
-        idx = random.randrange(len(ims))
-        img = Image.open(ims[idx]).convert("RGB")
-        x = self.tfm(img)
-        return x, lab, cid
+        cid, lab, ims = self.clips[i]
+        chosen = self._select_frames(ims)
+        frames = []
+        for p in chosen:
+            img = Image.open(p).convert("RGB")
+            frames.append(self.tfm(img))  # (C,H,W)
+        # frames: list of T tensors (C,H,W)
+        clip = torch.stack(frames, dim=1)  # (C, T, H, W)
+        return clip, lab, cid
 
 # ---------------- Metrics ----------------
 def metrics_war_uar(y_true, y_pred, K):
@@ -193,24 +209,23 @@ def metrics_war_uar(y_true, y_pred, K):
     rec = []
     for k in range(K):
         m = (y_true == k)
-        if m.sum(): rec.append(float((y_pred[m] == k).mean()))
+        if m.sum():
+            rec.append(float((y_pred[m] == k).mean()))
     uar = float(np.mean(rec)) if rec else 0.0
     return war, uar
 
 def eval_loader(model, dloader, device, K):
-    model.eval(); clip_logits = defaultdict(lambda: None); clip_lab = {}
+    model.eval()
+    y_true, y_pred = [], []
     with torch.no_grad():
-        for x, y, cid in dloader:
+        for x, y, _ in dloader:
             x = x.to(device, non_blocking=True)
+            y = y.to(device, non_blocking=True)
             with torch.amp.autocast("cuda" if device.type=="cuda" else "cpu"):
                 logits = model(x)  # (B,K)
-            for i, c in enumerate(cid):
-                clip_lab[c] = int(y[i])
-                cur = logits[i].detach().cpu()
-                clip_logits[c] = cur if clip_logits[c] is None else (clip_logits[c] + cur)
-    y_true, y_pred = [], []
-    for c, logit_sum in clip_logits.items():
-        y_true.append(clip_lab[c]); y_pred.append(int(logit_sum.argmax().item()))
+            preds = logits.argmax(dim=1)
+            y_true.extend(y.cpu().tolist())
+            y_pred.extend(preds.cpu().tolist())
     return metrics_war_uar(y_true, y_pred, K=K)
 
 # ---------------- Main ----------------
@@ -218,17 +233,19 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", default="dfew/DFEW-part2", help="path to DFEW-part2 (repo-relative default)")
     ap.add_argument("--epochs", type=int, default=10)
-    ap.add_argument("--batch", type=int, default=256)
+    ap.add_argument("--batch", type=int, default=8, help="3D is heavy: start with 4–8")
     ap.add_argument("--lr", type=float, default=3e-4)
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--fold", type=int, default=1)
+    ap.add_argument("--frames", type=int, default=16,
+                    help="number of frames per clip (DFEW uses 16)")
     ap.add_argument("--val_frac", type=float, default=0.1, help="fraction of TRAIN used as validation")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument(
         "--labels",
         choices=["7","5","4","2"],
         default="2",
-        help="label preset: 7=original, 5=merged (Disgust→Angry, Fear→Sad), 4=Pos/Neg/Neutral/Surprise, 2=Positive/Negative"
+        help="label preset: 7=original, 5=merged, 4=Pos/Neg/Neu/Sup, 2=Pos/Neg"
     )
     ap.add_argument("--out", type=str, default="models", help="folder to save checkpoints")
     args = ap.parse_args()
@@ -254,6 +271,7 @@ def main():
         torch.cuda.manual_seed_all(args.seed)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print("Device:", device)
 
     # Paths
     frames_root = os.path.join(args.root, "Clip", "clip_224x224_16f")
@@ -265,29 +283,36 @@ def main():
     print("Train split counts (after collapse):", Counter(lab for _, lab in train_all))
     train_items, val_items = stratified_split(train_all, val_frac=args.val_frac, seed=args.seed)
 
-    # Transforms
-    tf_train = transforms.Compose([
+    # Video normalization (Kinetics-style)
+    VIDEO_MEAN = [0.43216, 0.394666, 0.37645]
+    VIDEO_STD  = [0.22803, 0.22145, 0.216989]
+
+    # Per-frame transforms (applied to each frame)
+    tf_train_frame = transforms.Compose([
+        transforms.Resize(256),
         transforms.RandomResizedCrop(224, scale=(0.8, 1.0)),
         transforms.RandomHorizontalFlip(0.5),
         transforms.ToTensor(),
-        transforms.Normalize([0.485,0.456,0.406],[0.229,0.224,0.225]),
+        transforms.Normalize(VIDEO_MEAN, VIDEO_STD),
     ])
-    tf_eval = transforms.Compose([
-        transforms.Resize(256), transforms.CenterCrop(224),
+    tf_eval_frame = transforms.Compose([
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
         transforms.ToTensor(),
-        transforms.Normalize([0.485,0.456,0.406],[0.229,0.224,0.225]),
+        transforms.Normalize(VIDEO_MEAN, VIDEO_STD),
     ])
 
     # Datasets / Loaders
-    ds_tr = DFEWFrames(frames_root, train_items, tf_train, per_clip=1)
-    ds_va = DFEWFrames(frames_root, val_items,   tf_eval,  per_clip=16)
-    dl_tr = DataLoader(ds_tr, batch_size=args.batch, shuffle=True,  num_workers=args.workers,
-                       pin_memory=True, drop_last=True)
-    dl_va = DataLoader(ds_va, batch_size=args.batch, shuffle=False, num_workers=args.workers,
-                       pin_memory=True)
+    ds_tr = DFEWClips3D(frames_root, train_items, tf_train_frame, num_frames=args.frames)
+    ds_va = DFEWClips3D(frames_root, val_items,   tf_eval_frame,  num_frames=args.frames)
+    dl_tr = DataLoader(ds_tr, batch_size=args.batch, shuffle=True,
+                       num_workers=args.workers, pin_memory=True, drop_last=True)
+    dl_va = DataLoader(ds_va, batch_size=args.batch, shuffle=False,
+                       num_workers=args.workers, pin_memory=True)
 
-    # Model (ResNet-101 pretrained)
-    m = models.resnet101(weights=models.ResNet101_Weights.IMAGENET1K_V1)
+    # 3D Model (r3d_18 pretrained on Kinetics)
+    weights = R3D_18_Weights.KINETICS400_V1
+    m = r3d_18(weights=weights)
     m.fc = nn.Linear(m.fc.in_features, NUM_CLASSES)
     m.to(device)
 
@@ -296,22 +321,23 @@ def main():
     torch.backends.cudnn.benchmark = True
 
     best_uar = -1.0
-    best_path = os.path.join(args.out, f"best_resnet101_{suffix}_fold{args.fold}_16f_VAL.pth")
+    best_path = os.path.join(args.out, f"best_r3d18_{suffix}_fold{args.fold}_{args.frames}f.pth")
 
     for epoch in range(1, args.epochs + 1):
         # ---- Train ----
         m.train(); running = 0.0; n = 0
         for x, y, _ in dl_tr:
-            x = x.to(device, non_blocking=True); y = y.to(device, non_blocking=True)
+            x = x.to(device, non_blocking=True)
+            y = y.to(device, non_blocking=True)
             opt.zero_grad(set_to_none=True)
             with torch.amp.autocast("cuda" if device.type=="cuda" else "cpu"):
-                logits = m(x)
+                logits = m(x)            # x: (B, C, T, H, W)
                 loss = nn.CrossEntropyLoss()(logits, y)
             scaler.scale(loss).backward()
             scaler.step(opt); scaler.update()
             running += loss.item() * x.size(0); n += x.size(0)
 
-        # ---- Validate on VAL (not test) ----
+        # ---- Validate on VAL (clip-level) ----
         war, uar = eval_loader(m, dl_va, device, K=NUM_CLASSES)
         print(f"epoch {epoch:02d}  train_loss {running/max(n,1):.4f}  VAL_WAR {war:.4f}  VAL_UAR {uar:.4f}")
 
