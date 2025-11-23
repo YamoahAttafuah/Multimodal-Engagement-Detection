@@ -216,7 +216,7 @@ This is useful for making decisions like:
 
 ---
 
-## 6. Testing on your own face images (offline images)
+## 6. Testing on your own face images
 
 Use `test_custom_faces.py` to evaluate a checkpoint on your own images.  
 It:
