@@ -179,7 +179,7 @@ Use `eval_only_dfew_16f.py` to evaluate a saved checkpoint on the official **tes
 Example (2-class, fold 1):
 
 ```bash
-python eval_only_dfew_16f.py   --root ../dfew/DFEW-part2   --models_dir ../models   --fold 1   --labels 2   --ckpt ../models/best_resnet101_2cls_fold1_16f_VAL.pth
+python eval_only_dfew_16f.py   --root dfew/DFEW-part2   --models_dir models   --fold 1   --labels 2   --ckpt models/best_resnet101_2cls_fold1_16f_VAL.pth
 ```
 
 If you omit `--ckpt`, the script will look for:

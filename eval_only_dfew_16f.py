@@ -175,8 +175,15 @@ def main():
     args = ap.parse_args()
 
     base = Path(__file__).resolve().parent.parent
+
+    # Resolve dataset + models under the repo parent (same as training)
     args.root = str((base / args.root).resolve())
     args.models_dir = str((base / args.models_dir).resolve())
+
+    # ALSO resolve --ckpt relative to the same base if it's a relative path
+    if args.ckpt is not None and not os.path.isabs(args.ckpt):
+        args.ckpt = str((base / args.ckpt).resolve())
+
 
     # Preset (same as training)
     preset = LABEL_PRESETS[args.labels]
