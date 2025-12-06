@@ -1,0 +1,10 @@
+# note python needs 3.9 - 3.11, not latest. Tensorflow incompatible with >3.11
+tensorflow==2.15.0
+
+kagglehub>=0.3.13
+numpy>=1.23.0,<2.0.0
+librosa>=0.10.0
+pandas==2.0.0
+matplotlib>=3.7.0
+sounddevice>=0.13.0
+sklearn>=1.6.0
