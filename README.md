@@ -1,11 +1,24 @@
 # RAVDESS live audio emotion predictor
 
-# dependencies
-see requirements
+Binary emotion classifier trained on python 3.9.23, tensorflow 2.15.0. Source preprocessing and training notebook for submission found in RAVDESS.
 
-trained on py 3.9.23, tf 2.15.0
+## Py and Tf versions
+Create conda environment:
+```
+conda create -n tf_env python=3.9.23
+conda activate tf_env
+```
 
-## run
-ensure audio1dconv.keras is in the same folder as live_ravdess_demo1.py
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
 
-command prompt run: live_ravdess_demo1.py
+3. Run the script from the conda prompt:
+```
+python live_ravdess_demo1.py
+```
+Make sure you are running with **python** not the system **py**. py uses the latest python and will not cooperate with tf 2.15.0
+## Model
+
+The trained model is located in `RAVDESS/audio1dconv.keras`
