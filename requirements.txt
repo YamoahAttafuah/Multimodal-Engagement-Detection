@@ -1,0 +1,20 @@
+# GPU wheels for PyTorch (keep this line if you have an NVIDIA GPU)
+--extra-index-url https://download.pytorch.org/whl/cu121
+
+# Core
+numpy>=1.26,<2.0.0
+pillow>=10.0
+
+# PyTorch
+torch~=2.3
+torchvision~=0.18
+scikit-learn>=1.2
+
+# Vision 
+opencv-python==4.10.0.84
+mediapipe==0.10.11
+
+# Audio / Tensorflow
+tensorflow==2.15.0
+sounddevice>=0.4.6
+
