@@ -1,6 +1,6 @@
 # AffectFusion: Real-Time Facial Engagement Detection
 
-![Project Demo GIF](assets/daisee_demo.gif)
+![Project Demo GIF](assets/daisee_demo.gif?raw=true)
 
 Figure 1: Real-time engagement detection on live webcam feed.
 
