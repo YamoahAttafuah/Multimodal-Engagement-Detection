@@ -4,7 +4,7 @@ https://github.com/user-attachments/assets/cf70fe0b-dd94-49dc-9d03-c4434ceb613c
 
 Figure 1: Real-time engagement detection on live webcam feed.
 
-AffectFusion is a multimodal framework designed to predict a person's affective state by fusing facial engagement, facial emotion, and vocal emotion signals, making it suitable for live classroom feedback, intelligent tutoring systems and AI-driven educational tools.
+AffectFusion is a multimodal framework that predicts user affective states by combining facial engagement, facial expression, and vocal emotion signals. By fusing these diverse inputs, the system provides real-time insights suitable for intelligent tutoring systems, AI-driven educational tools, and live classroom feedback.
 
 This repository focuses on my contribution, the facial engagement detection subsystem (DAiSEE branches), developed as part of ECE1513 Introduction to Machine Learning at the University of Toronto.
 
