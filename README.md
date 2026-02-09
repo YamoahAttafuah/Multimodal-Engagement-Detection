@@ -8,7 +8,7 @@ AffectFusion is a multimodal framework designed to predict a person's affective 
 
 This repository focuses on my contribution, the facial engagement detection subsystem (DAiSEE branches), developed as part of ECE1513 Introduction to Machine Learning at the University of Toronto.
 
-> **For complete project details, see the [full technical report](ECE1513_Final_Project_Report_Team_11.pdf)**.
+> **For complete project details, see the [full technical report](assets/ECE1513_Final_Project_Report_Team_11.pdf)**.
 
 ## 1. Problem Statement
 
@@ -117,7 +117,7 @@ daisee-main/
 ├── daisee_model_training.py                 # LSTM training pipeline
 ├── real-time-inference-std-top2.py          # Streamlit live demo (dual-emotion display)
 ├── real-time-inference-std-top1.py          # Streamlit live demo (single-emotion display)
-├── selected_features_54.json                # 54 selected feature indices
+├── selected_features_54.json                # Feature indices (54/1434)
 └── rf_daisee_model_GAMMA_54features.h5      # Trained model weights
 ```
 
@@ -144,19 +144,6 @@ If you use this dataset in your work, please cite the original authors:
 
 **IEEE Style**
 > [1] A. Gupta, A. D'Cunha, K. Awasthi, and V. N. Balasubramanian, "Daisee: Towards user engagement recognition in the wild," in *2016 12th IEEE International Conference on Automatic Face & Gesture Recognition (FG 2016)*, 2016, pp. 488-495.
-
-**BibTeX**
-```bibtex
-@inproceedings{gupta2016daisee,
-  title={Daisee: Towards user engagement recognition in the wild},
-  author={Gupta, Abhay and D'Cunha, Arjun and Awasthi, Kshitij and Balasubramanian, Vineeth N},
-  booktitle={2016 12th IEEE International Conference on Automatic Face \& Gesture Recognition (FG 2016)},
-  pages={488--495},
-  year={2016},
-  organization={IEEE}
-}
-```
-
 
 ## Running the Demo
 
