@@ -1,6 +1,7 @@
 # AffectFusion: Real-Time Facial Engagement Detection
 
 https://github.com/user-attachments/assets/cf70fe0b-dd94-49dc-9d03-c4434ceb613c
+
 Figure 1: Real-time engagement detection on live webcam feed.
 
 AffectFusion is a multimodal framework designed to predict a person's affective state by fusing facial engagement, facial emotion, and vocal emotion signals, making it suitable for live classroom feedback, intelligent tutoring systems and AI-driven educational tools.
