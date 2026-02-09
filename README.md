@@ -145,19 +145,6 @@ If you use this dataset in your work, please cite the original authors:
 **IEEE Style**
 > [1] A. Gupta, A. D'Cunha, K. Awasthi, and V. N. Balasubramanian, "Daisee: Towards user engagement recognition in the wild," in *2016 12th IEEE International Conference on Automatic Face & Gesture Recognition (FG 2016)*, 2016, pp. 488-495.
 
-**BibTeX**
-```bibtex
-@inproceedings{gupta2016daisee,
-  title={Daisee: Towards user engagement recognition in the wild},
-  author={Gupta, Abhay and D'Cunha, Arjun and Awasthi, Kshitij and Balasubramanian, Vineeth N},
-  booktitle={2016 12th IEEE International Conference on Automatic Face \& Gesture Recognition (FG 2016)},
-  pages={488--495},
-  year={2016},
-  organization={IEEE}
-}
-```
-
-
 ## Running the Demo
 
 To run the real-time engagement detector:
